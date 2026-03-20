@@ -1,0 +1,43 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+env:
+  SF_VERSION: 'latest'
+  TEST_LEVEL: 'RunLocalTests'
+  
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: |
+         echo " ======Installing Salesforce CLI======"
+         npm install -g @salesforce/cli
+         echo " ======Installed Salesforce CLI======"
+      
+      - name: Authenticate to Production
+        run: |
+         echo " ======Authenticating to Salesforce org======"
+         echo "${{ secrets.SF_PROD_AUTH_URL }}" > auth.txt
+         sf org login sfdx-url -f auth.txt -a SFDXProd
+         echo " ======Authorized to Salesforce org======"
+         
+      - name: Deploy to Production
+        run: |
+         echo " ======Starting Deployment to Salesforce org======"
+         sf project deploy start \
+            --source-dir force-app \
+            --target-org ProdOrg \
+            --test-level RunLocalTests \
+            --wait 30
+         echo " ======Deployed Successfully to Salesforce org======"
